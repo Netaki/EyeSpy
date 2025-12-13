@@ -4,15 +4,21 @@ Group {
   Label {FlexWeight: 1;}
   Group #TimeLeft {
     Anchor: (Top: 20);
-    Background: #000000(0.2);
     Padding: (Horizontal: 20, Vertical: 10);
     LayoutMode: Top;
 
-    Label #MyLabel {
+    Label #Header {
       Style: LabelStyle(FontSize: 16); // or just Style: (FontSize: 16), type can be inferred.
-      Text: "Hi! I am text.";
+      Text: "Error: No header!";
     }
-
+    Label #Body {
+      Style: LabelStyle(FontSize: 16); // or just Style: (FontSize: 16), type can be inferred.
+      Text: "Error: No body!";
+    }
+    Label #Footer {
+      Style: LabelStyle(FontSize: 16); // or just Style: (FontSize: 16), type can be inferred.
+      Text: "Error: No footer!";
+    }
   }
   Label {FlexWeight: 1;}
 }
