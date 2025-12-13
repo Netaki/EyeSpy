@@ -36,7 +36,7 @@ public class EyeSpyHud extends CustomUIHud {
                           @Nonnull ArchetypeChunk<EntityStore> archetypeChunk,
                           @Nonnull Store<EntityStore> store,
                           @Nonnull CommandBuffer<EntityStore> commandBuffer) {
-
+        labelText = null;
         Holder<EntityStore> holder = EntityUtils.toHolder(index, archetypeChunk);
         Player player = holder.getComponent(Player.getComponentType());
 
@@ -68,8 +68,8 @@ public class EyeSpyHud extends CustomUIHud {
 
     @Override
     protected void build(@Nonnull UICommandBuilder commandBuilder) {
-        commandBuilder.append("Hud/Test.ui");
         if (this.labelText != null) {
+            commandBuilder.append("Hud/Test.ui");
             commandBuilder.set("#MyLabel.Text", this.labelText);
         }
     }
