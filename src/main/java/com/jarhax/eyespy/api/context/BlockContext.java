@@ -19,7 +19,6 @@ import javax.annotation.Nullable;
 public class BlockContext extends Context {
 
     private final BlockType block;
-    @Nullable
     private final BlockState state;
     private final Vector3i targetPos;
     private final Vector3i offsetPos;

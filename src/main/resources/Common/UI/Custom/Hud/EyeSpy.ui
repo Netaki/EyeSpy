@@ -14,16 +14,16 @@ Group {
         Anchor: (Left: 10, Top: 20);
         LayoutMode: Top;
         Label #Header {
-          Style: LabelStyle(FontSize: 16); // or just Style: (FontSize: 16), type can be inferred.
-          Text: "Error: No header!";
+          Style: LabelStyle(FontSize: 16);
+          Text: "Info Header";
         }
         Label #Body {
-          Style: LabelStyle(FontSize: 16); // or just Style: (FontSize: 16), type can be inferred.
-          Text: "Error: No body!";
+          Style: LabelStyle(FontSize: 16);
+          Text: "Info Body";
         }
         Label #Footer {
-          Style: LabelStyle(FontSize: 16); // or just Style: (FontSize: 16), type can be inferred.
-          Text: "Error: No footer!";
+          Style: LabelStyle(FontSize: 16);
+          Text: "Info Footer";
         }
     }
   }
