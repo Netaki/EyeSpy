@@ -4,18 +4,20 @@ import com.hypixel.hytale.component.ArchetypeChunk;
 import com.hypixel.hytale.component.CommandBuffer;
 import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Store;
-import com.hypixel.hytale.protocol.FormattedMessage;
-import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.EntityUtils;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.hud.CustomUIHud;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import com.jarhax.eyespy.api.info.InfoProvider;
 import com.jarhax.eyespy.api.context.BlockContext;
+import com.jarhax.eyespy.api.context.EntityContext;
+import com.jarhax.eyespy.api.info.AnchorBuilder;
 import com.jarhax.eyespy.api.info.InfoBuilder;
+import com.jarhax.eyespy.api.info.InfoProvider;
+import com.jarhax.eyespy.api.info.InfoValue;
 import com.jarhax.eyespy.impl.info.VanillaBlockInfoProvider;
+import com.jarhax.eyespy.impl.info.VanillaEntityInfoProvider;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -26,9 +28,11 @@ public class EyeSpyHud extends CustomUIHud {
 
     // TODO Allow plugins to register new providers;
     private static final List<InfoProvider<BlockContext>> blockInfoProviders = new LinkedList<>();
+    private static final List<InfoProvider<EntityContext>> entityInfoProviders = new LinkedList<>();
 
     static {
         blockInfoProviders.add(new VanillaBlockInfoProvider());
+        entityInfoProviders.add(new VanillaEntityInfoProvider());
     }
 
     @Nullable
@@ -36,6 +40,9 @@ public class EyeSpyHud extends CustomUIHud {
 
     @Nullable
     private BlockContext blockContext;
+
+    @Nullable
+    private EntityContext entityContext;
 
     public EyeSpyHud(@Nonnull PlayerRef playerRef) {
         super(playerRef);
@@ -45,11 +52,19 @@ public class EyeSpyHud extends CustomUIHud {
         this.info = new InfoBuilder();
         final Holder<EntityStore> holder = EntityUtils.toHolder(index, archetypeChunk);
         final Player player = holder.getComponent(Player.getComponentType());
+
         if (player != null && player.getWorld() != null) {
-            this.blockContext = BlockContext.create(player, dt, index, archetypeChunk, store, commandBuffer);
-            if (this.blockContext != null) {
-                for (InfoProvider<BlockContext> provider : blockInfoProviders) {
-                    provider.updateDescription(this.blockContext, this.info);
+            this.entityContext = EntityContext.create(player, dt, index, archetypeChunk, store, commandBuffer);
+            if (this.entityContext != null) {
+                for (InfoProvider<EntityContext> provider : entityInfoProviders) {
+                    provider.updateDescription(this.entityContext, this.info);
+                }
+            } else {
+                this.blockContext = BlockContext.create(player, dt, index, archetypeChunk, store, commandBuffer);
+                if (this.blockContext != null) {
+                    for (InfoProvider<BlockContext> provider : blockInfoProviders) {
+                        provider.updateDescription(this.blockContext, this.info);
+                    }
                 }
             }
         }
@@ -58,49 +73,24 @@ public class EyeSpyHud extends CustomUIHud {
     @Override
     protected void build(@Nonnull UICommandBuilder ui) {
         if (this.info != null && this.info.canDisplay()) {
-            ui.append("Hud/EyeSpy.ui");
-            setText(ui, "#Header", this.info.getHeader());
-            setText(ui, "#Body", this.info.getBody());
-            setText(ui, "#Footer", this.info.getFooter());
-            setIcon(ui, this.info.getIcon());
+            ui.append("Hud/EyeSpy/EyeSpy.ui");
+            final AnchorBuilder anchorBuilder = new AnchorBuilder().setTop(20).setLeft(20);
+            this.info.values()
+                    .filter(infoValue -> infoValue != InfoValue.EMPTY)
+                    .forEach(infoValue -> {
+                        infoValue.build(ui, anchorBuilder, "#Info");
+                    });
+            this.info.getIcon().build(ui, anchorBuilder, "#IconContainer");
+            ui.setObject("#EyeSpyHud.Anchor", anchorBuilder.build());
         }
-        if (this.blockContext != null) {
+        if (this.entityContext != null) {
+            for (InfoProvider<EntityContext> provider : entityInfoProviders) {
+                provider.modifyUI(this.entityContext, ui);
+            }
+        } else if (this.blockContext != null) {
             for (InfoProvider<BlockContext> provider : blockInfoProviders) {
                 provider.modifyUI(this.blockContext, ui);
             }
-        }
-    }
-
-    @Override
-    public void update(boolean clear, @Nonnull UICommandBuilder commandBuilder) {
-        super.update(clear, commandBuilder);
-    }
-
-    private static boolean isValid(Message message) {
-        if (message != null) {
-            final FormattedMessage formattedMessage = message.getFormattedMessage();
-            return formattedMessage != null;
-        }
-        return false;
-    }
-
-    private static void setText(@Nonnull UICommandBuilder ui, @Nonnull String selector, @Nullable Message value) {
-        if (!isValid(value)) {
-            ui.set(selector + ".Visible", false);
-        }
-        else {
-            ui.set(selector + ".Visible", true);
-            ui.set(selector + ".TextSpans", value);
-        }
-    }
-
-    private static void setIcon(@Nonnull UICommandBuilder ui, @Nullable String iconId) {
-        if (iconId == null) {
-            ui.set("#Icon.Visible", false);
-        }
-        else {
-            ui.set("#Icon.Visible", true);
-            ui.set("#Icon.ItemId", iconId);
         }
     }
 }

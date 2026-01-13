@@ -1,47 +1,40 @@
 package com.jarhax.eyespy.api.info;
 
-import com.hypixel.hytale.server.core.Message;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class InfoBuilder {
 
-    private String icon;
-    private Message header;
-    private Message body;
-    private Message footer;
+    private InfoValue icon = InfoValue.EMPTY;
+    private final Map<String, InfoValue> infos = new LinkedHashMap<>();
 
-    public String getIcon() {
+    public <T extends InfoValue> void set(String id, Function<String, T> factory) {
+        this.infos.put(id, factory.apply(id));
+    }
+
+    public <T extends InfoValue> T get(String id) {
+        return (T) this.infos.get(id);
+    }
+
+    public Map<String, InfoValue> infos() {
+        return infos;
+    }
+
+    public Stream<InfoValue> values() {
+        return this.infos.values().stream();
+    }
+
+    public InfoValue getIcon() {
         return icon;
     }
 
-    public void setIcon(String icon) {
+    public void setIcon(InfoValue icon) {
         this.icon = icon;
     }
 
-    public Message getHeader() {
-        return header;
-    }
-
-    public void setHeader(Message header) {
-        this.header = header;
-    }
-
-    public Message getBody() {
-        return body;
-    }
-
-    public void setBody(Message body) {
-        this.body = body;
-    }
-
-    public Message getFooter() {
-        return footer;
-    }
-
-    public void setFooter(Message footer) {
-        this.footer = footer;
-    }
-
     public boolean canDisplay() {
-        return this.getIcon() != null || this.getHeader() != null || this.getBody() != null || this.getFooter() != null;
+        return this.getIcon() != InfoValue.EMPTY || this.infos.values().stream().anyMatch(infoValue -> infoValue != InfoValue.EMPTY);
     }
 }

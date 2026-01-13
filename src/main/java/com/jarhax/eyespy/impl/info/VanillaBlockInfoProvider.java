@@ -4,17 +4,21 @@ import com.hypixel.hytale.builtin.crafting.state.BenchState;
 import com.hypixel.hytale.builtin.crafting.state.ProcessingBenchState;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.asset.type.blocktype.config.BlockType;
-import com.hypixel.hytale.server.core.asset.type.blocktype.config.farming.FarmingData;
 import com.hypixel.hytale.server.core.asset.type.item.config.Item;
 import com.hypixel.hytale.server.core.asset.type.item.config.ItemTranslationProperties;
+import com.hypixel.hytale.server.core.inventory.ItemStack;
 import com.hypixel.hytale.server.core.universe.world.meta.state.ItemContainerState;
 import com.jarhax.eyespy.EyeSpy;
 import com.jarhax.eyespy.api.MessageHelpers;
 import com.jarhax.eyespy.api.context.BlockContext;
 import com.jarhax.eyespy.api.info.InfoBuilder;
 import com.jarhax.eyespy.api.info.InfoProvider;
+import com.jarhax.eyespy.api.info.InfoValue;
+import com.jarhax.eyespy.api.info.values.*;
 
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class VanillaBlockInfoProvider implements InfoProvider<BlockContext> {
 
@@ -24,30 +28,53 @@ public class VanillaBlockInfoProvider implements InfoProvider<BlockContext> {
     @Override
     public void updateDescription(BlockContext context, InfoBuilder infoBuilder) {
         if (!context.getBlock().getId().equals("Empty")) {
-            infoBuilder.setHeader(getDisplayName(context.getBlock()));
+            infoBuilder.set("Header", s -> new LabelValue(s, getDisplayName(context.getBlock()), 24));
 
             final Item item = context.getBlock().getItem();
             if (item != null) {
-                infoBuilder.setIcon(item.getId());
+                infoBuilder.setIcon(new IconValue(item.getId()));
+            }
+
+            if (context.getState() != null) {
+                infoBuilder.set("Body", s -> switch (context.getState()) {
+                    case ProcessingBenchState processor -> {
+                        List<InfoValue> values = new ArrayList<>();
+                        values.add(new LabelValue(s + "Tier", MessageHelpers.tier(processor.getTierLevel()).color(color2)));
+                        if (processor.isActive() && processor.getRecipe() != null && !Float.isNaN(processor.getInputProgress()) && !Float.isNaN(processor.getRecipe().getTimeSeconds())) {
+                            float value = processor.getInputProgress() / processor.getRecipe().getTimeSeconds();
+                            // If we don't drop tiny values the client crashes
+                            values.add(new ProgressBarValue(s + "Progress", Math.round(value * 1000) / 1000f));
+                        }
+                        yield new GroupValue(s, values);
+                    }
+                    case BenchState bench -> new LabelValue(s, MessageHelpers.tier(bench.getTierLevel()).color(color2));
+                    case ItemContainerState container -> {
+
+                        List<ItemStack> stacks = new ArrayList<>();
+                        outer:
+                        for (short i = 0; i < container.getItemContainer().getCapacity(); i++) {
+                            ItemStack stack = container.getItemContainer().getItemStack(i);
+                            if (stack == null) {
+                                continue;
+                            }
+                            for (int j = 0; j < stacks.size(); j++) {
+                                ItemStack itemStack = stacks.get(j);
+                                if (itemStack.isEquivalentType(stack)) {
+                                    stacks.set(j, itemStack.withQuantity(itemStack.getQuantity() + stack.getQuantity()));
+                                    continue outer;
+                                }
+                            }
+                            stacks.add(stack);
+                        }
+                        yield new ItemGridValue(s, stacks);
+                    }
+                    default -> InfoValue.EMPTY;
+                });
             }
 
             final String owner = EyeSpy.OWNERSHIP.get(context.getBlock().getId());
             if (owner != null) {
-                infoBuilder.setFooter(Message.raw(owner).color(color).bold(true));
-            }
-
-            if (context.getState() instanceof BenchState bench) {
-                infoBuilder.setBody(MessageHelpers.tier(bench.getTierLevel()).color(color2));
-            }
-
-            if (context.getState() instanceof ItemContainerState container) {
-                infoBuilder.setBody(MessageHelpers.capacity(container.getItemContainer().getCapacity()).color(color2));
-            }
-
-            if (context.getState() instanceof ProcessingBenchState processor) {
-                if (processor.isActive() && processor.getRecipe() != null) {
-                    infoBuilder.setBody(MessageHelpers.progress((processor.getInputProgress() / processor.getRecipe().getTimeSeconds()) * 100f).color(color2));
-                }
+                infoBuilder.set("Footer", s -> new LabelValue(s, Message.raw(owner).color(color).bold(true)));
             }
         }
     }
